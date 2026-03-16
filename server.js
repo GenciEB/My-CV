@@ -94,3 +94,16 @@ app.use((_, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+if (req.path.startsWith('/api/')) {
+  return res.status(404).json({ message: 'Endpoint not found.' });
+}
+return res.sendFile(path.join(__dirname, 'index.html'));
