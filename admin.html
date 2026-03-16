@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin · Contact submissions</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&family=Inter:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <main class="admin-shell">
+      <header>
+        <h1>Contact inbox</h1>
+        <p>Displayed submissions come from `/api/contact` (last 10 entries).</p>
+        <small>Refresh to reload.</small>
+      </header>
+      <section class="status" id="status">Loading submissions…</section>
+      <section class="list" id="entries"></section>
+    </main>
+    <script type="module" src="admin.js"></script>
+  </body>
+</html>
