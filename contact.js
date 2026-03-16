@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { addEntry, getEntries } from '../lib/contact-store.js';
+import { addEntry, getEntries } from '../contact-store.js';
 
 const smtpConfig =
   process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS
