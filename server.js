@@ -3,14 +3,13 @@ import cors from 'cors';
 import nodemailer from 'nodemailer';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { mkdir, readFile, writeFile, stat } from 'fs/promises';
+import { addEntry, getEntries } from './lib/contact-store.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5173;
-const CONTACT_DIR = path.join(__dirname, 'data');
-const CONTACT_FILE = path.join(CONTACT_DIR, 'contacts.json');
+
 const smtpConfig =
   process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS
     ? {
@@ -26,19 +25,16 @@ const smtpConfig =
 const mailTransporter = smtpConfig ? nodemailer.createTransport(smtpConfig) : null;
 const notificationRecipient = process.env.EMAIL_TO || process.env.EMAIL_USER;
 
-app.use(cors());
-app.use(express.json({ limit: '10kb' }));
-app.use(express.static(path.join(__dirname)));
-
 const sendNotificationEmail = async (entry) => {
   if (!mailTransporter || !notificationRecipient) return;
-  const body = `
-Name: ${entry.name}
-Email: ${entry.email}
-Subject: ${entry.subject}
-Message:
-${entry.message}
-`;
+  const body = [
+    `Name: ${entry.name}`,
+    `Email: ${entry.email}`,
+    `Subject: ${entry.subject}`,
+    'Message:',
+    entry.message,
+  ].join('\n');
+
   await mailTransporter.sendMail({
     from: `"CV Site" <${process.env.EMAIL_USER}>`,
     to: notificationRecipient,
@@ -53,24 +49,13 @@ ${entry.message}
   });
 };
 
-const ensureContactFile = async () => {
-  try {
-    await stat(CONTACT_DIR);
-  } catch {
-    await mkdir(CONTACT_DIR, { recursive: true });
-  }
-  try {
-    await stat(CONTACT_FILE);
-  } catch {
-    await writeFile(CONTACT_FILE, '[]');
-  }
-};
+app.use(cors());
+app.use(express.json({ limit: '10kb' }));
+app.use(express.static(path.join(__dirname)));
 
 app.get('/api/contact', async (req, res) => {
   try {
-    await ensureContactFile();
-    const content = await readFile(CONTACT_FILE, 'utf8');
-    const entries = JSON.parse(content);
+    const entries = await getEntries();
     res.json(entries.slice(-10).reverse());
   } catch (error) {
     console.error('Error reading contacts:', error);
@@ -92,10 +77,7 @@ app.post('/api/contact', async (req, res) => {
   };
 
   try {
-    await ensureContactFile();
-    const current = JSON.parse(await readFile(CONTACT_FILE, 'utf8'));
-    current.push(newEntry);
-    await writeFile(CONTACT_FILE, JSON.stringify(current, null, 2));
+    await addEntry(newEntry);
     sendNotificationEmail(newEntry).catch((error) => {
       console.error('Email notification failed', error);
     });
@@ -104,10 +86,6 @@ app.post('/api/contact', async (req, res) => {
     console.error('Error saving contact:', error);
     res.status(500).json({ message: 'Unable to save your submission.' });
   }
-});
-
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
 app.use((_, res) => {
