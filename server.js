@@ -3,7 +3,8 @@ import cors from 'cors';
 import nodemailer from 'nodemailer';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { addEntry, getEntries } from './contact-store.js';
+import { addEntry, getEntries } from './lib/contact-store.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
@@ -52,6 +53,15 @@ app.use(cors());
 app.use(express.json({ limit: '10kb' }));
 app.use(express.static(path.join(__dirname)));
 
+// Explicit HTML routes so Render always serves the pages
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
 app.get('/api/contact', async (req, res) => {
   try {
     const entries = await getEntries();
@@ -87,23 +97,14 @@ app.post('/api/contact', async (req, res) => {
   }
 });
 
-app.use((_, res) => {
-  res.status(404).send('Endpoint not found.');
+app.use((req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ message: 'Endpoint not found.' });
+  }
+  // For any other path, fall back to main page
+  return res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin.html'));
-});
-
-if (req.path.startsWith('/api/')) {
-  return res.status(404).json({ message: 'Endpoint not found.' });
-}
-return res.sendFile(path.join(__dirname, 'index.html'));
